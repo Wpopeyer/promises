@@ -1,0 +1,2 @@
+steps:
+- args: [functions, deploy, pub_parking_session, --set-env-vars=MODE=dev]

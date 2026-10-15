@@ -1,0 +1,35 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/Wpopeyer/promises/promises.schema.json",
+  "title": "promises.yaml",
+  "description": "Cross-repo contracts declared by their producers. See SPEC.md.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "promises"],
+  "properties": {
+    "version": {"const": 1},
+    "promises": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/row"}
+    }
+  },
+  "$defs": {
+    "row": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "id", "meaning", "invariant"],
+      "properties": {
+        "kind": {"enum": ["firestore.field", "pubsub.topic", "http.route", "env"]},
+        "id": {"type": "string", "minLength": 1},
+        "type": {"type": "string"},
+        "meaning": {"type": "string", "minLength": 1},
+        "invariant": {"type": "string", "minLength": 1},
+        "written_by": {"type": "array", "items": {"type": "string", "minLength": 1}},
+        "consumed_by": {"type": "array", "items": {"type": "string", "minLength": 1}},
+        "schema": {"type": "string"},
+        "status": {"enum": ["live", "deprecated", "dead"]},
+        "note": {"type": "string"}
+      }
+    }
+  }
+}

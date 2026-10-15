@@ -1,0 +1,2 @@
+steps:
+- args: [functions, deploy, firestore_upsert, --set-env-vars=MODE=dev]

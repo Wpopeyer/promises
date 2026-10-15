@@ -1,0 +1,143 @@
+# promises.yaml — example workspace: a Flask web app for parking operators (web/), a
+# Flutter app for drivers (app/) and Cloud Functions (functions/) sharing one Firestore
+# and one Pub/Sub project.
+# Rows are declared by the PRODUCER. Consumers are found by grepping the sibling repos.
+# Schema: ../SPEC.md. Lint: `promises check examples/promises.yaml`.
+
+version: 1
+
+promises:
+
+  # ───────────── Firestore fields ─────────────
+
+  - kind: firestore.field
+    id: sessions/{plate}.is_parked
+    type: bool
+    meaning: The vehicle currently has an open parking session. The app's "parked now"
+      screen and the operator dashboard counts filter on it with equality queries, which
+      silently match nothing if the field is absent or wrong.
+    invariant: "true iff ended_at is null; never hard-code"
+    written_by:
+      - web/services/sessions.py
+      - app/lib/active_session.dart
+    consumed_by:
+      - app (equality queries, direct reads)
+    note: A refactor that rebuilds this payload inline and writes the literal true breaks
+      nothing visibly. The field just stops meaning anything.
+
+  - kind: firestore.field
+    id: sessions/{plate}.zone_type
+    type: enum street|garage|lot
+    meaning: Splits the app's session list and the operator reports by kind of zone.
+    invariant: derived from the zone's tariff code (1 → street, 2 → garage, else lot); the
+      app-side resolver must map identically; never hard-code
+    written_by:
+      - web/services/sessions.py
+      - app/lib/active_session.dart
+    consumed_by:
+      - app
+
+  - kind: firestore.field
+    id: zones/{city},{zone}.is_active
+    type: bool
+    meaning: The zone accepts new sessions; the app lists only active zones.
+    invariant: "is_active = not zone.decommissioned"
+    written_by:
+      - web/services/zones.py
+    consumed_by:
+      - app
+
+  - kind: firestore.field
+    id: drivers/{email}.sms_receipts
+    type: bool
+    meaning: Account-level SMS receipt toggle; default false when absent.
+    invariant: app-owned; any web write to drivers/{email} must preserve it
+    written_by:
+      - app/lib/receipt_settings.dart
+    consumed_by:
+      - web (receipt delivery)
+      - app
+
+  - kind: firestore.field
+    id: drivers/{email}.is_tester
+    type: bool
+    meaning: Hides internal test accounts from operator reports.
+    invariant: "UNKNOWN — maintainer to confirm: the web always writes false, so the only true source is manual"
+    written_by:
+      - web/services/drivers.py
+    consumed_by:
+      - app
+
+  # ───────────── Pub/Sub topics ─────────────
+
+  - kind: pubsub.topic
+    id: parking-session
+    type: JSON object — plate, zone_id, started_at, ended_at, tz_offset, is_deleted
+    meaning: One session's start or end, from a Firestore sessions write.
+    invariant: tz_offset is MINUTES; all keys present (the subscriber reads each with data.get)
+    written_by:
+      - functions/pub_parking_session/main.py
+    consumed_by:
+      - functions/sub_parking_session
+
+  - kind: pubsub.topic
+    id: payment
+    type: JSON object — plate, session_id, amount_cents, currency, paid_at
+    meaning: A completed payment from the app.
+    invariant: amount_cents is an integer in the smallest unit; the subscriber never rounds
+    written_by:
+      - functions/pub_payment/main.py
+    consumed_by:
+      - functions/sub_payment
+
+  - kind: pubsub.topic
+    id: plate-scans
+    type: JSON object
+    meaning: Retired. No producer or consumer deployed in any environment.
+    invariant: n/a
+    written_by:
+      - functions/pub_plate_scans/main.py
+    status: dead
+
+  # ───────────── HTTP routes ─────────────
+
+  - kind: http.route
+    id: GET /api/app/sessions
+    type: "Bearer ID token → {sessions[], next_before}"
+    meaning: Paginated session history for the signed-in driver.
+    invariant: session keys id, started_at, ended_at, zone_name, amount_cents are parsed by name in the app
+    written_by:
+      - web/views/app_api.py
+    consumed_by:
+      - app (sessions_api.dart)
+
+  - kind: http.route
+    id: POST https://<region>-<project>.cloudfunctions.net/firestore_upsert
+    type: "Cloud Task body {collection_name, doc_id, firebase_data, operation}"
+    meaning: The web app's only path to Firestore writes that must trigger Pub/Sub publishers.
+    invariant: 'operation defaults to "set" (full replace, no merge); doc_id has / : ? & and spaces rewritten to _'
+    written_by:
+      - functions/firestore_upsert/main.py
+    consumed_by:
+      - web (cloud_tasks.py)
+
+  # ───────────── Environment ─────────────
+
+  - kind: env
+    id: MODE
+    type: enum dev|test|prod
+    meaning: Selects which Secret Manager versions ({MODE}-{NAME}) every Python service loads at cold start.
+    invariant: set per deployment in each cloudbuild.yaml
+    written_by:
+      - "functions/*/cloudbuild.yaml"
+    consumed_by:
+      - web, every function
+
+  - kind: env
+    id: CLOUD_SQL_CONNECTION_NAME
+    type: string (secret)
+    meaning: The Cloud SQL instance every subscriber and the web app share. Written in Secret Manager, not in any repo.
+    invariant: a revision that loses its env override silently writes to the wrong instance and still acks 200
+    written_by: []
+    consumed_by:
+      - web, every PostgreSQL subscriber

@@ -1,0 +1,2 @@
+steps:
+- args: [functions, deploy, pub_plate_scans, --set-env-vars=MODE=dev]

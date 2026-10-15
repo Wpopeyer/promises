@@ -1,6 +1,14 @@
-# promises
+<p align="center">
+  <img src="assets/banner.png" alt="promises — Your repos made promises. Someone should have written them down." width="100%">
+</p>
 
-Declare the contracts your repos share, so agents and people read them before changing them.
+<p align="center">
+  <a href="https://pypi.org/project/promises-yaml/"><img alt="PyPI" src="https://img.shields.io/pypi/v/promises-yaml?label=pypi&color=FF5A1F&labelColor=1D3FB8"></a>
+  <a href="LICENSE"><img alt="Licence: MIT" src="https://img.shields.io/badge/licence-MIT-1D3FB8"></a>
+  <img alt="Python 3.10+" src="https://img.shields.io/badge/python-3.10%2B-1D3FB8">
+</p>
+
+**Declare the contracts your repos share, so agents and people read them before changing them.**
 
 A `promises.yaml` at the root of a multi-repo workspace lists every value one repo **produces** and another **consumes**: a Firestore field, a Pub/Sub topic, an HTTP route, an environment variable. Each row carries one line of **meaning** and one line of **invariant**. That is the whole idea. There is no graph, no server, no hook. A one-line pointer in your agent instructions file is the integration.
 
@@ -58,6 +66,27 @@ Where you cannot state an invariant, write `invariant: UNKNOWN — <owner> to co
 
 Not a scanner: consumers are found by grepping, which the sentence tells the agent to do. Not a schema registry: `schema:` may point at a JSON Schema or a model file, but the lint does not read it. Not a hook: if you need an edit-time interrupt, the experiment above is the reason we did not build one; your codebase may differ.
 
+## The Witness
+
+<img align="right" src="assets/witness.svg" width="150" alt="The Witness: a deadpan figure with a clipboard and a raised pinky">
+
+Wasn't in the meeting. Has the notes anyway.
+
+He writes down what one repo promised another and reads it back to whoever is about to change it. He never writes code, never has opinions about your architecture, and never raises his voice. Always: the clipboard, the pinky, the flat "you said."
+
+**Is this a JavaScript thing?** No. The name was free on PyPI, and a pinky swear is a contract with no server.
+
+**What does he do with a row marked `UNKNOWN`?** Asks you. Every time. That is the point of the row.
+
+<br clear="all">
+
 ## Licence
 
 MIT.
+
+---
+
+<p align="center">
+  <img src="assets/lockup.png" alt="promises" width="200"><br>
+  Made by <a href="https://github.com/Wpopeyer">Will Pope</a>. The mark, the Witness and the inks live in <a href="assets/">assets/</a>.
+</p>
